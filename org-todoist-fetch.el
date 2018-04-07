@@ -52,17 +52,17 @@
   "Fetch all tasks from Todoist, append them to org-todoist-fetch-file, and delete them in Todoist."
   (interactive)
   (deferred:$
-    (request-deferred "https://todoist.com/API/v6/sync"
+    (request-deferred "https://todoist.com/API/v7/sync"
                       :type "GET"
                       :params `(("token" . ,org-todoist-fetch-api-token)
-                                ("seq_no" . "0")
+                                ("sync_token" . "*")
                                 ("resource_types" . "[\"items\"]"))
                       :parser (lambda ()
                                 (let ((json-object-type 'plist))
                                   (json-read))))
     (deferred:nextc it
       (lambda (response)
-        (let ((items (sort (mapcar 'identity (plist-get (request-response-data response) :Items))
+        (let ((items (sort (mapcar 'identity (plist-get (request-response-data response) :items))
                            (lambda (a b)
                              (< (plist-get a :item_order) (plist-get b :item_order)))))
               result)
@@ -80,7 +80,8 @@
                                                   (plist-get item :content)
                                                   (when (plist-get item :due_date)
                                                     (format-time-string "\nSCHEDULED: <%Y-%m-%d %a>" (date-to-time (plist-get item :due_date))))
-                                                  (format-time-string "\n[%Y-%m-%d %a %H:%M]" (date-to-time (plist-get item :date_added)))))
+                                                  ;(format-time-string "\n[%Y-%m-%d %a %H:%M]" (date-to-time (plist-get item :date_added)))
+                                                  ))
                                         items "\n"))
                 (with-current-buffer (find-file-noselect org-todoist-fetch-file)
                   (save-excursion
@@ -88,7 +89,7 @@
                     (insert result)
                     (save-buffer)))
                 (deferred:$
-                  (request-deferred "https://todoist.com/API/v6/sync"
+                  (request-deferred "https://todoist.com/API/v7/sync"
                                     :type "GET"
                                     :params `(("token" . ,org-todoist-fetch-api-token)
                                               ("commands" . ,(concat "[{\"type\":\"item_delete\","
